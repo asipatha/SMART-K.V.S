@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<title>Bakery Stock — අමුද්‍රව්‍ය කළමනාකරණය</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Sinhala:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy-900:#0A1836; --navy-800:#0F2352; --navy-700:#16307a;
+  --blue-600:#2F5BFF; --blue-500:#5177FF;
+  --mint-500:#00D9A3; --mint-600:#00B589; --mint-100:#DEFBF2;
+  --bg:#F2F4FA; --card:#FFFFFF; --ink:#0F1730; --ink-2:#2B3352; --muted:#8891A8;
+  --line:#EBEEF5; --red:#FF4D5E; --red-100:#FFE8EA; --amber:#FFA726; --amber-100:#FFF3E0;
+  --green:#12B76A; --green-100:#E4F9EF;
+  --r-lg:22px; --r-md:16px; --r-sm:12px;
+  --shadow:0 10px 30px -12px rgba(15,23,48,.15);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Noto Sans Sinhala','Plus Jakarta Sans',sans-serif;
+  background:var(--bg); color:var(--ink);
+  min-height:100vh; overscroll-behavior-y:none;
+}
+.num{font-family:'Plus Jakarta Sans','Noto Sans Sinhala',sans-serif;}
+#app{max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; padding-bottom:96px;}
+
+/* ---- Top bar ---- */
+.topbar{
+  position:sticky; top:0; z-index:40; background:var(--bg);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 18px 6px;
+}
+.topbar .brand{display:flex; align-items:center; gap:10px;}
+.brand .logo{
+  width:40px;height:40px;border-radius:12px;
+  background:linear-gradient(135deg,var(--navy-900),var(--blue-600));
+  display:flex;align-items:center;justify-content:center; color:#fff; font-size:19px;
+}
+.brand .titles{line-height:1.15;}
+.brand .titles .t1{font-weight:800; font-size:15px;}
+.brand .titles .t2{font-size:11.5px; color:var(--muted);}
+.topbar .icon-btn{
+  width:40px;height:40px;border-radius:12px;background:#fff;border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center; position:relative; cursor:pointer;
+}
+.topbar .icon-btn .dot{position:absolute; top:8px; right:8px; width:7px;height:7px;border-radius:50%;background:var(--red);}
+
+/* ---- Sections / cards ---- */
+.px{padding-left:18px; padding-right:18px;}
+.section{margin-top:18px;}
+.section-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.section-head h3{font-size:14.5px; margin:0; font-weight:800; color:var(--ink);}
+.section-head .link{font-size:12.5px; color:var(--blue-600); font-weight:700; cursor:pointer;}
+.card{background:var(--card); border-radius:var(--r-md); box-shadow:var(--shadow);}
+
+/* hero */
+.hero{
+  margin:16px 18px 0; border-radius:var(--r-lg); padding:22px 20px 18px;
+  background:linear-gradient(135deg,var(--navy-900) 0%, var(--navy-700) 55%, var(--blue-600) 130%);
+  color:#fff; position:relative; overflow:hidden;
+}
+.hero::after{content:"";position:absolute; right:-40px; top:-40px; width:160px;height:160px;border-radius:50%;
+  background:radial-gradient(circle at 30% 30%, rgba(0,217,163,.35), transparent 70%);}
+.hero .label{font-size:12px; opacity:.75; display:flex; justify-content:space-between; align-items:center;}
+.hero .label .pill{background:rgba(255,255,255,.14); padding:4px 10px; border-radius:20px; font-size:11px;}
+.hero .amount{font-size:30px; font-weight:800; margin-top:6px; letter-spacing:-.5px;}
+.hero .amount span{font-size:15px; font-weight:600; opacity:.7;}
+.hero svg{width:100%; height:46px; margin-top:10px; display:block;}
+.hero .foot{display:flex; justify-content:space-between; margin-top:8px; font-size:11.5px; opacity:.85; position:relative; z-index:2;}
+.hero .foot b{color:var(--mint-500); font-weight:700;}
+
+/* stat grid */
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:14px;}
+.stat-card{background:var(--card); border-radius:var(--r-md); padding:14px 14px; box-shadow:var(--shadow);}
+.stat-card .ic{width:34px;height:34px;border-radius:10px; display:flex;align-items:center;justify-content:center; font-size:16px; margin-bottom:8px;}
+.stat-card .val{font-size:17px; font-weight:800;}
+.stat-card .lbl{font-size:11.5px; color:var(--muted); margin-top:2px;}
+.ic.blue{background:#E8EEFF; color:var(--blue-600);}
+.ic.mint{background:var(--mint-100); color:var(--mint-600);}
+.ic.red{background:var(--red-100); color:var(--red);}
+.ic.amber{background:var(--amber-100); color:var(--amber);}
+
+/* alert list */
+.alert-row{display:flex; align-items:center; gap:12px; padding:12px 14px; border-bottom:1px solid var(--line);}
+.alert-row:last-child{border-bottom:none;}
+.alert-row .swatch{width:36px;height:36px;border-radius:10px; display:flex;align-items:center;justify-content:center; font-size:16px; flex-shrink:0;}
+.alert-row .info{flex:1; min-width:0;}
+.alert-row .info .n{font-size:13.5px; font-weight:700;}
+.alert-row .info .s{font-size:11.5px; color:var(--muted);}
+.alert-row .right{text-align:right;}
+.alert-row .right .v{font-size:13px; font-weight:800;}
+.badge{font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px;}
+.badge.red{background:var(--red-100); color:var(--red);}
+.badge.amber{background:var(--amber-100); color:#B26A00;}
+.badge.green{background:var(--green-100); color:var(--green);}
+.badge.gray{background:#EEF1F7; color:var(--muted);}
+
+/* quick actions */
+.qa-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:14px;}
+.qa{background:var(--card); border-radius:var(--r-md); box-shadow:var(--shadow); padding:12px 6px; text-align:center; cursor:pointer;}
+.qa .ic{width:38px;height:38px;border-radius:12px; margin:0 auto 6px; display:flex;align-items:center;justify-content:center; font-size:17px;}
+.qa .t{font-size:10.8px; font-weight:700; color:var(--ink-2);}
+
+/* list rows generic */
+.list-card{background:var(--card); border-radius:var(--r-md); box-shadow:var(--shadow); overflow:hidden;}
+.row{display:flex; align-items:center; gap:12px; padding:13px 14px; border-bottom:1px solid var(--line); cursor:pointer;}
+.row:last-child{border-bottom:none;}
+.row .av{width:38px;height:38px;border-radius:11px; background:#EEF1FB; color:var(--blue-600); display:flex;align-items:center;justify-content:center; font-weight:800; font-size:13px; flex-shrink:0;}
+.row .mid{flex:1; min-width:0;}
+.row .mid .n{font-size:13.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.row .mid .s{font-size:11.5px; color:var(--muted); margin-top:1px;}
+.row .end{text-align:right; flex-shrink:0;}
+.row .end .v{font-weight:800; font-size:13.5px;}
+.row .end .u{font-size:10.5px; color:var(--muted);}
+.chev{color:#C6CCDB; font-size:16px;}
+
+/* buttons */
+.btn{border:none; border-radius:14px; padding:13px 16px; font-weight:700; font-size:13.5px; cursor:pointer; width:100%; font-family:inherit;}
+.btn-primary{background:var(--blue-600); color:#fff;}
+.btn-mint{background:var(--mint-500); color:#062; color:#04372a;}
+.btn-outline{background:#fff; border:1.4px solid var(--line); color:var(--ink);}
+.btn-danger{background:var(--red-100); color:var(--red);}
+.btn-sm{padding:8px 12px; font-size:12px; border-radius:10px; width:auto;}
+.btn-row{display:flex; gap:10px;}
+.btn-row .btn{flex:1;}
+
+/* search bar */
+.search-wrap{background:#fff; border:1.4px solid var(--line); border-radius:14px; display:flex; align-items:center; gap:8px; padding:11px 14px; margin-top:14px;}
+.search-wrap input{border:none; outline:none; font-size:13.5px; width:100%; background:transparent; font-family:inherit;}
+.search-wrap .ic{color:var(--muted);}
+
+/* tabs */
+.tabs{display:flex; gap:8px; margin-top:14px; overflow-x:auto; scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{flex-shrink:0; padding:8px 15px; border-radius:20px; font-size:12.5px; font-weight:700; background:#fff; border:1.4px solid var(--line); color:var(--muted); cursor:pointer; white-space:nowrap;}
+.tab.active{background:var(--navy-900); color:#fff; border-color:var(--navy-900);}
+
+/* bottom nav */
+.bottomnav{
+  position:fixed; bottom:0; left:50%; transform:translateX(-50%);
+  width:100%; max-width:480px; background:#fff; border-top:1px solid var(--line);
+  display:flex; align-items:center; justify-content:space-around; padding:10px 6px calc(10px + env(safe-area-inset-bottom));
+  z-index:50;
+}
+.navbtn{display:flex; flex-direction:column; align-items:center; gap:3px; color:var(--muted); font-size:10px; font-weight:700; cursor:pointer; flex:1; padding:4px;}
+.navbtn.active{color:var(--navy-900);}
+.navbtn .ic{font-size:19px;}
+.fab{
+  width:54px;height:54px;border-radius:50%; background:linear-gradient(135deg,var(--mint-500),var(--mint-600));
+  display:flex;align-items:center;justify-content:center; color:#04372a; font-size:26px; font-weight:400;
+  box-shadow:0 10px 20px -6px rgba(0,217,163,.6); cursor:pointer; margin-top:-30px; border:5px solid var(--bg);
+}
+
+/* modal / sheet */
+.overlay{position:fixed; inset:0; background:rgba(10,16,32,.5); z-index:100; display:none; align-items:flex-end; justify-content:center;}
+.overlay.open{display:flex;}
+.sheet{
+  background:var(--bg); width:100%; max-width:480px; border-radius:24px 24px 0 0;
+  max-height:88vh; overflow-y:auto; padding:16px 18px calc(24px + env(safe-area-inset-bottom));
+  animation:up .22s ease;
+}
+@keyframes up{from{transform:translateY(24px); opacity:0;} to{transform:translateY(0); opacity:1;}}
+.sheet-handle{width:40px;height:4px;background:var(--line); border-radius:4px; margin:2px auto 14px;}
+.sheet-head{display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;}
+.sheet-head h3{margin:0; font-size:16px; font-weight:800;}
+.sheet-head .x{width:32px;height:32px; border-radius:10px; background:#fff; border:1px solid var(--line); display:flex;align-items:center;justify-content:center; cursor:pointer; color:var(--muted);}
+
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:12px; font-weight:700; color:var(--ink-2); margin-bottom:6px;}
+.field input,.field select,.field textarea{
+  width:100%; padding:12px 13px; border-radius:12px; border:1.4px solid var(--line); background:#fff;
+  font-size:13.5px; font-family:inherit; outline:none; color:var(--ink);
+}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--blue-600);}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+.toast{
+  position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:var(--navy-900); color:#fff;
+  padding:11px 20px; border-radius:30px; font-size:12.5px; font-weight:700; z-index:200; opacity:0;
+  transition:opacity .25s, transform .25s; pointer-events:none; box-shadow:var(--shadow);
+}
+.toast.show{opacity:1; transform:translateX(-50%) translateY(-6px);}
+
+.empty{text-align:center; padding:36px 20px; color:var(--muted);}
+.empty .ic{font-size:34px; margin-bottom:8px;}
+.empty .t{font-size:13px; font-weight:700; color:var(--ink-2);}
+.empty .s{font-size:11.5px; margin-top:3px;}
+
+.chart-wrap{background:var(--card); border-radius:var(--r-md); box-shadow:var(--shadow); padding:14px;}
+.legend-row{display:flex; align-items:center; gap:8px; font-size:11.5px; color:var(--muted); margin-top:8px;}
+.legend-row .sw{width:9px;height:9px;border-radius:3px;}
+
+.action-sheet-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+.action-sheet-grid .as{background:#fff; border:1.4px solid var(--line); border-radius:16px; padding:16px 10px; text-align:center; cursor:pointer;}
+.action-sheet-grid .as .ic{width:42px;height:42px;border-radius:13px; margin:0 auto 8px; display:flex;align-items:center;justify-content:center; font-size:19px;}
+.action-sheet-grid .as .t{font-size:12.5px; font-weight:700;}
+
+.pageTitle{font-size:20px; font-weight:800; margin:16px 18px 0;}
+.pageSub{font-size:12px; color:var(--muted); margin:2px 18px 0;}
+
+/* payment method pills */
+.pm-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+.pm-opt{border:1.4px solid var(--line); background:#fff; border-radius:12px; padding:11px 6px; text-align:center; cursor:pointer; font-size:12px; font-weight:700; color:var(--ink-2);}
+.pm-opt .ic{font-size:17px; margin-bottom:4px; display:block;}
+.pm-opt.active{border-color:var(--blue-600); background:#EEF2FF; color:var(--blue-600);}
+.pm-opt.active.credit{border-color:var(--amber); background:var(--amber-100); color:#B26A00;}
+.due-box{background:var(--amber-100); border-radius:12px; padding:12px 14px; margin-top:10px; display:flex; justify-content:space-between; align-items:center;}
+.due-box .l{font-size:12px; color:#B26A00; font-weight:700;}
+.due-box .v{font-size:15px; font-weight:800; color:#B26A00;}
+
+/* print report (hidden on screen) */
+#printArea{display:none;}
+@media print{
+  body *{visibility:hidden;}
+  #printArea, #printArea *{visibility:visible;}
+  #printArea{display:block !important; position:absolute; top:0; left:0; width:100%; padding:20px;}
+  .no-print{display:none !important;}
+}
+.prpt-h1{font-size:20px; font-weight:800; margin:0;}
+.prpt-h2{font-size:13px; color:#555; margin:2px 0 14px;}
+.prpt-sec-title{font-size:14px; font-weight:800; margin:22px 0 8px; border-bottom:2px solid #0A1836; padding-bottom:4px;}
+.prpt-table{width:100%; border-collapse:collapse; font-size:11.5px;}
+.prpt-table th{background:#0A1836; color:#fff; text-align:left; padding:7px 8px; font-size:10.5px;}
+.prpt-table td{padding:6px 8px; border-bottom:1px solid #E4E7EF;}
+.prpt-table tr:nth-child(even) td{background:#F7F8FC;}
+.prpt-summary{display:flex; gap:16px; margin:10px 0 6px; flex-wrap:wrap;}
+.prpt-summary .box{border:1.4px solid #E4E7EF; border-radius:10px; padding:10px 14px; min-width:130px;}
+.prpt-summary .box .l{font-size:10.5px; color:#777;}
+.prpt-summary .box .v{font-size:15px; font-weight:800; margin-top:2px;}
+.prpt-badge{font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:10px;}
+
+@media(min-width:481px){ #app{box-shadow:0 0 60px rgba(0,0,0,.08);} .bottomnav{border-radius:0;} }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo">🥐</div>
+      <div class="titles">
+        <div class="t1">K.V.S BAKE HOUSE</div>
+        <div class="t2">Inventory & Raw Material System</div>
+      </div>
+    </div>
+    <div class="icon-btn" onclick="openLowStockQuick()">🔔<span class="dot" id="alertDot" style="display:none"></span></div>
+  </div>
+
+  <div id="appContent"></div>
+
+  <div class="bottomnav">
+    <div class="navbtn" data-nav="dashboard"><div class="ic">🏠</div><div>මුල් පිටුව</div></div>
+    <div class="navbtn" data-nav="materials"><div class="ic">📦</div><div>අමුද්‍රව්‍ය</div></div>
+    <div class="fab" onclick="openQuickAdd()">+</div>
+    <div class="navbtn" data-nav="reports"><div class="ic">📊</div><div>වාර්තා</div></div>
+    <div class="navbtn" data-nav="more"><div class="ic">☰</div><div>තවත්</div></div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay"><div class="sheet" id="sheetBody"></div></div>
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+/* =========================================================
+   DATA LAYER
+========================================================= */
+const DB_KEYS = ['materials','purchases','usage','wastage','suppliers','movements','recipes','payments'];
+function load(key){ try{ return JSON.parse(localStorage.getItem('bk_'+key)) || []; }catch(e){ return []; } }
+function save(key,val){ localStorage.setItem('bk_'+key, JSON.stringify(val)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function today(){ return new Date().toISOString().slice(0,10); }
+function fmtDate(d){ if(!d) return '-'; const dt=new Date(d); return dt.toLocaleDateString('si-LK',{day:'2-digit',month:'short',year:'numeric'}); }
+function fmtMoney(n){ n=Number(n)||0; return 'රු. '+n.toLocaleString('en-LK',{minimumFractionDigits:0,maximumFractionDigits:2}); }
+function daysUntil(dateStr){ if(!dateStr) return null; const d=new Date(dateStr), n=new Date(today()); return Math.ceil((d-n)/86400000); }
+
+let DATA = {};
+function loadAll(){ DB_KEYS.forEach(k=> DATA[k]=load(k)); }
+function saveKey(k){ save(k, DATA[k]); }
+loadAll();
+
+// Seed demo data on first run
+if(DATA.materials.length===0 && localStorage.getItem('bk_seeded')!==(navigator.userAgent)){
+  const sup1={id:uid(), name:'Ceylon Flour Mills', phone:'077 123 4567', address:'කොළඹ'};
+  const sup2={id:uid(), name:'Lanka Sugar Traders', phone:'071 987 6543', address:'ගම්පහ'};
+  DATA.suppliers=[sup1,sup2];
+  DATA.materials=[
+    {id:uid(),code:'RM001',name:'පිටි (Flour)',category:'Baking Base',unit:'kg',supplierId:sup1.id,buyingPrice:200,minStock:40,reorderLevel:60,reorderQty:100,currentStock:32,expiryDate:''},
+    {id:uid(),code:'RM002',name:'සීනි (Sugar)',category:'Sweetener',unit:'kg',supplierId:sup2.id,buyingPrice:230,minStock:15,reorderLevel:20,reorderQty:25,currentStock:8,expiryDate:''},
+    {id:uid(),code:'RM003',name:'බටර් (Butter)',category:'Fat',unit:'kg',supplierId:sup1.id,buyingPrice:1450,minStock:10,reorderLevel:15,reorderQty:15,currentStock:6,expiryDate:addDays(18)},
+    {id:uid(),code:'RM004',name:'යීස්ට් (Yeast)',category:'Leavening',unit:'kg',supplierId:sup1.id,buyingPrice:1200,minStock:2,reorderLevel:3,reorderQty:5,currentStock:1.2,expiryDate:addDays(5)},
+    {id:uid(),code:'RM005',name:'කිරි පිටි (Milk Powder)',category:'Dairy',unit:'kg',supplierId:sup2.id,buyingPrice:1600,minStock:8,reorderLevel:10,reorderQty:10,currentStock:14,expiryDate:addDays(60)},
+    {id:uid(),code:'RM006',name:'බිත්තර (Eggs)',category:'Protein',unit:'Pack',supplierId:sup2.id,buyingPrice:950,minStock:5,reorderLevel:8,reorderQty:10,currentStock:11,expiryDate:addDays(12)},
+  ];
+  saveKey('materials'); saveKey('suppliers');
+}
+function addDays(n){ const d=new Date(); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); }
+
+function getMaterial(id){ return DATA.materials.find(m=>m.id===id); }
+function getSupplier(id){ return DATA.suppliers.find(s=>s.id===id); }
+function stockValue(m){ return (Number(m.currentStock)||0) * (Number(m.buyingPrice)||0); }
+function totalStockValue(){ return DATA.materials.reduce((s,m)=>s+stockValue(m),0); }
+function lowStockItems(){ return DATA.materials.filter(m=> Number(m.currentStock) <= Number(m.minStock)); }
+function reorderItems(){ return DATA.materials.filter(m=> Number(m.currentStock) <= Number(m.reorderLevel)); }
+function expiringItems(days){ return DATA.materials.filter(m=> m.expiryDate && daysUntil(m.expiryDate)!==null && daysUntil(m.expiryDate)<=days); }
+
+/* ---- Supplier payment helpers ---- */
+function purchaseTotal(p){ return (Number(p.qty)||0)*(Number(p.price)||0); }
+function purchaseDue(p){ if(p.paymentMethod!=='credit') return 0; return Math.max(0, purchaseTotal(p) - (Number(p.amountPaid)||0)); }
+function supplierOutstanding(supplierId){ return DATA.purchases.filter(p=>p.supplierId===supplierId).reduce((s,p)=>s+purchaseDue(p),0); }
+function totalOutstandingAll(){ return DATA.purchases.reduce((s,p)=>s+purchaseDue(p),0); }
+function paymentMethodLabel(pm){ return pm==='bank'?'බැංකු මාරුව':pm==='credit'?'ණයට':'මුදල්'; }
+
+function logMovement(type, materialId, qty, note){
+  DATA.movements.unshift({id:uid(), date:new Date().toISOString(), type, materialId, qty, note:note||''});
+  saveKey('movements');
+}
+
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(window._tt); window._tt=setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+let currentTab='dashboard';
+document.querySelectorAll('.navbtn').forEach(b=> b.addEventListener('click', ()=> go(b.dataset.nav)) );
+function go(tab){
+  currentTab=tab;
+  document.querySelectorAll('.navbtn').forEach(b=> b.classList.toggle('active', b.dataset.nav===tab));
+  const map={dashboard:renderDashboard, materials:renderMaterials, reports:renderReports, more:renderMore};
+  (map[tab]||renderDashboard)();
+  document.getElementById('appContent').scrollIntoView({behavior:'instant'});
+  window.scrollTo(0,0);
+}
+
+function closeSheet(){ document.getElementById('overlay').classList.remove('open'); document.getElementById('sheetBody').innerHTML=''; }
+function openSheet(html){ document.getElementById('sheetBody').innerHTML = `<div class="sheet-handle"></div>` + html; document.getElementById('overlay').classList.add('open'); }
+document.getElementById('overlay').addEventListener('click', e=>{ if(e.target.id==='overlay') closeSheet(); });
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+function renderDashboard(){
+  const low = lowStockItems();
+  const reorder = reorderItems();
+  document.getElementById('alertDot').style.display = low.length? 'block':'none';
+
+  const todaysUsage = DATA.usage.filter(u=>u.date===today());
+  const todaysUsageQty = todaysUsage.length;
+  const monthStr = today().slice(0,7);
+  const monthPurchaseVal = DATA.purchases.filter(p=>p.date.slice(0,7)===monthStr).reduce((s,p)=>s+p.qty*p.price,0);
+  const monthUsageVal = DATA.usage.filter(u=>u.date.slice(0,7)===monthStr).reduce((s,u)=>{ const m=getMaterial(u.materialId); return s+(m? u.qty*m.buyingPrice:0); },0);
+
+  const wavePoints = buildWave();
+
+  let alertsHtml = low.slice(0,4).map(m=>{
+    const pct = m.minStock? Math.min(100, Math.round((m.currentStock/m.minStock)*100)):0;
+    return `<div class="alert-row">
+      <div class="swatch" style="background:var(--red-100);color:var(--red)">⚠️</div>
+      <div class="info"><div class="n">${m.name}</div><div class="s">${m.currentStock} ${m.unit} ඉතිරියි • අවම ${m.minStock} ${m.unit}</div></div>
+      <div class="right"><span class="badge red">Low</span></div>
+    </div>`;
+  }).join('') || `<div class="empty"><div class="ic">✅</div><div class="t">Stock තත්ත්වය හොඳයි</div><div class="s">low stock items නැත</div></div>`;
+
+  let reorderHtml = reorder.slice(0,4).map(m=>{
+    const q = Math.max(m.reorderQty || (m.reorderLevel*1.5 - m.currentStock), 1);
+    return `<div class="alert-row">
+      <div class="swatch" style="background:var(--amber-100);color:#B26A00">🔁</div>
+      <div class="info"><div class="n">${m.name}</div><div class="s">ගෙන්නන්න යෝජිතයි</div></div>
+      <div class="right"><div class="v num">${Math.round(q)} ${m.unit}</div></div>
+    </div>`;
+  }).join('') || `<div class="empty"><div class="ic">👍</div><div class="t">Reorder අවශ්‍ය items නැත</div></div>`;
+
+  document.getElementById('appContent').innerHTML = `
+    <div class="hero">
+      <div class="label"><span>සම්පූර්ණ Stock වටිනාකම</span><span class="pill">${today() && new Date().toLocaleDateString('si-LK',{day:'2-digit',month:'short'})}</span></div>
+      <div class="amount num">${fmtMoney(totalStockValue())}</div>
+      <svg viewBox="0 0 300 46" preserveAspectRatio="none"><path d="${wavePoints}" fill="none" stroke="#00D9A3" stroke-width="2.4" stroke-linecap="round"/></svg>
+      <div class="foot">
+        <span>අද භාවිතා කළ අයිතම: <b>${todaysUsageQty}</b></span>
+        <span>Low Stock: <b style="color:${low.length?'#FF7A85':'#00D9A3'}">${low.length}</b></span>
+      </div>
+    </div>
+
+    <div class="px stat-grid">
+      <div class="stat-card"><div class="ic mint">🛒</div><div class="val num">${fmtMoney(monthPurchaseVal)}</div><div class="lbl">මේ මාසේ මිලදී ගැනීම්</div></div>
+      <div class="stat-card"><div class="ic blue">🔥</div><div class="val num">${fmtMoney(monthUsageVal)}</div><div class="lbl">මේ මාසේ භාවිතය</div></div>
+      <div class="stat-card"><div class="ic red">⚠️</div><div class="val num">${low.length}</div><div class="lbl">Low Stock Items</div></div>
+      <div class="stat-card"><div class="ic amber">📦</div><div class="val num">${DATA.materials.length}</div><div class="lbl">මුළු අමුද්‍රව්‍ය වර්ග</div></div>
+      <div class="stat-card" style="grid-column:span 2; display:flex; align-items:center; justify-content:space-between;" onclick="go('more'); setTimeout(renderSupplierPayments,0);">
+        <div style="display:flex; align-items:center; gap:10px;"><div class="ic red" style="margin-bottom:0;">🧾</div><div><div class="val num">${fmtMoney(totalOutstandingAll())}</div><div class="lbl">Suppliers ට ගෙවිය යුතු ණය</div></div></div>
+        <span class="chev">›</span>
+      </div>
+    </div>
+
+    <div class="px section">
+      <div class="section-head"><h3>⚡ ඉක්මන් ක්‍රියා</h3></div>
+      <div class="qa-grid">
+        <div class="qa" onclick="openUsageForm()"><div class="ic" style="background:#E8EEFF;color:var(--blue-600)">🔥</div><div class="t">Daily Usage</div></div>
+        <div class="qa" onclick="openPurchaseForm()"><div class="ic" style="background:var(--mint-100);color:var(--mint-600)">🛒</div><div class="t">Purchase</div></div>
+        <div class="qa" onclick="openMaterialForm()"><div class="ic" style="background:var(--amber-100);color:#B26A00">📦</div><div class="t">New Item</div></div>
+        <div class="qa" onclick="openWastageForm()"><div class="ic" style="background:var(--red-100);color:var(--red)">🗑️</div><div class="t">Wastage</div></div>
+      </div>
+    </div>
+
+    <div class="px section">
+      <div class="section-head"><h3>🔴 Low Stock Alerts</h3><span class="link" onclick="go('materials')">සියල්ල</span></div>
+      <div class="list-card">${alertsHtml}</div>
+    </div>
+
+    <div class="px section">
+      <div class="section-head"><h3>🔁 Auto Reorder Suggestions</h3></div>
+      <div class="list-card">${reorderHtml}</div>
+    </div>
+
+    <div class="px section" style="margin-bottom:6px;">
+      <div class="section-head"><h3>📈 Usage Analysis</h3><span class="link" onclick="go('reports')">වැඩිදුර</span></div>
+      <div class="chart-wrap"><canvas id="dashChart" height="150"></canvas></div>
+    </div>
+  `;
+  drawTopUsedChart('dashChart');
+}
+
+function buildWave(){
+  // simple pseudo-random smooth wave based on stock value history proxy
+  const pts=[]; let y=28;
+  for(let x=0;x<=300;x+=20){ y += (Math.sin(x*0.07 + DATA.materials.length)*6); pts.push([x, Math.max(6,Math.min(40,y))]); }
+  let d = `M0,${pts[0][1].toFixed(1)}`;
+  pts.forEach(p=> d+= ` L${p[0]},${p[1].toFixed(1)}`);
+  return d;
+}
+
+function openLowStockQuick(){
+  const low = lowStockItems();
+  openSheet(`
+    <div class="sheet-head"><h3>🔴 Low Stock Items</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="list-card">${ low.map(m=>`<div class="alert-row"><div class="swatch" style="background:var(--red-100);color:var(--red)">⚠️</div><div class="info"><div class="n">${m.name}</div><div class="s">${m.currentStock} ${m.unit} ඉතිරිය</div></div><span class="badge red">Low</span></div>`).join('') || `<div class="empty"><div class="ic">✅</div><div class="t">Alerts නැත</div></div>` }</div>
+  `);
+}
+
+/* =========================================================
+   MATERIALS (Raw Material Master)
+========================================================= */
+let matFilter='all', matSearch='';
+function renderMaterials(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">📦 Raw Material Master</div>
+    <div class="pageSub">අමුද්‍රව්‍ය ලැයිස්තුව සහ Stock තත්ත්වය</div>
+    <div class="px">
+      <div class="search-wrap"><span class="ic">🔍</span><input id="matSearchInput" placeholder="නම හෝ Code එකෙන් සොයන්න..." oninput="matSearch=this.value; renderMaterialList();"></div>
+      <div class="tabs">
+        <div class="tab ${matFilter==='all'?'active':''}" onclick="matFilter='all';renderMaterials()">සියල්ල</div>
+        <div class="tab ${matFilter==='low'?'active':''}" onclick="matFilter='low';renderMaterials()">Low Stock</div>
+        <div class="tab ${matFilter==='expiry'?'active':''}" onclick="matFilter='expiry';renderMaterials()">Expiry</div>
+      </div>
+      <div class="section" id="matListWrap"></div>
+      <div style="height:6px"></div>
+      <button class="btn btn-primary" onclick="openMaterialForm()" style="margin-top:4px;">+ අලුත් අමුද්‍රව්‍යයක් එකතු කරන්න</button>
+    </div>
+  `;
+  renderMaterialList();
+}
+function renderMaterialList(){
+  let items = DATA.materials.slice();
+  if(matFilter==='low') items = items.filter(m=>m.currentStock<=m.minStock);
+  if(matFilter==='expiry') items = items.filter(m=>m.expiryDate);
+  if(matSearch) items = items.filter(m=> m.name.toLowerCase().includes(matSearch.toLowerCase()) || m.code.toLowerCase().includes(matSearch.toLowerCase()));
+  const html = items.map(m=>{
+    const low = m.currentStock<=m.minStock;
+    const exp = m.expiryDate? daysUntil(m.expiryDate):null;
+    let badge='';
+    if(low) badge='<span class="badge red">Low</span>';
+    else if(exp!==null && exp<=7) badge='<span class="badge red">Exp '+exp+'d</span>';
+    else if(exp!==null && exp<=30) badge='<span class="badge amber">Exp '+exp+'d</span>';
+    else badge='<span class="badge green">OK</span>';
+    return `<div class="row" onclick="openMaterialDetail('${m.id}')">
+      <div class="av">${m.name.slice(0,2)}</div>
+      <div class="mid"><div class="n">${m.name}</div><div class="s">${m.code} • ${fmtMoney(m.buyingPrice)}/${m.unit}</div></div>
+      <div class="end"><div class="v num">${m.currentStock} <span class="u">${m.unit}</span></div>${badge}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('matListWrap').innerHTML = `<div class="list-card">${html || '<div class="empty"><div class="ic">📭</div><div class="t">Items හමු නොවීය</div></div>'}</div>`;
+}
+
+function openMaterialDetail(id){
+  const m=getMaterial(id); if(!m) return;
+  const sup = getSupplier(m.supplierId);
+  openSheet(`
+    <div class="sheet-head"><h3>${m.name}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="card" style="padding:16px; margin-bottom:14px;">
+      <div class="field-row">
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Current Stock</div><div class="v num" style="font-weight:800;font-size:16px;">${m.currentStock} ${m.unit}</div></div>
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Stock Value</div><div class="v num" style="font-weight:800;font-size:16px;">${fmtMoney(stockValue(m))}</div></div>
+      </div>
+      <div class="field-row" style="margin-top:12px;">
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Min Stock</div><div class="num" style="font-weight:700;">${m.minStock} ${m.unit}</div></div>
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Reorder Level</div><div class="num" style="font-weight:700;">${m.reorderLevel} ${m.unit}</div></div>
+      </div>
+      <div class="field-row" style="margin-top:12px;">
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Supplier</div><div style="font-weight:700;">${sup? sup.name:'-'}</div></div>
+        <div><div class="s" style="color:var(--muted);font-size:11.5px;">Expiry</div><div style="font-weight:700;">${m.expiryDate? fmtDate(m.expiryDate):'-'}</div></div>
+      </div>
+    </div>
+    <div class="btn-row" style="margin-bottom:10px;">
+      <button class="btn btn-outline" onclick="openMaterialForm('${m.id}')">✏️ Edit</button>
+      <button class="btn btn-danger" onclick="deleteMaterial('${m.id}')">🗑️ Delete</button>
+    </div>
+    <div class="section-head"><h3>Stock Movement History</h3></div>
+    <div class="list-card">
+      ${ DATA.movements.filter(x=>x.materialId===id).slice(0,10).map(x=>`
+        <div class="alert-row"><div class="swatch" style="background:${x.type==='usage'?'#E8EEFF':x.type==='purchase'?'var(--mint-100)':'var(--red-100)'};color:${x.type==='usage'?'var(--blue-600)':x.type==='purchase'?'var(--mint-600)':'var(--red)'}">${x.type==='usage'?'🔥':x.type==='purchase'?'🛒':'🗑️'}</div>
+        <div class="info"><div class="n">${x.type==='usage'?'භාවිතය':x.type==='purchase'?'මිලදී ගැනීම':'අපතේ යාම'}</div><div class="s">${fmtDate(x.date)}</div></div>
+        <div class="right"><div class="v num">${x.type==='purchase'?'+':'-'}${x.qty} ${m.unit}</div></div></div>`).join('') || '<div class="empty"><div class="t">Movements නැත</div></div>' }
+    </div>
+  `);
+}
+
+function deleteMaterial(id){
+  if(!confirm('මෙම අයිතමය ඉවත් කරන්නද?')) return;
+  DATA.materials = DATA.materials.filter(m=>m.id!==id); saveKey('materials');
+  closeSheet(); toast('Item ඉවත් කරන ලදී'); renderMaterials();
+}
+
+function openMaterialForm(id){
+  const m = id? getMaterial(id): null;
+  const supOptions = DATA.suppliers.map(s=>`<option value="${s.id}" ${m&&m.supplierId===s.id?'selected':''}>${s.name}</option>`).join('');
+  openSheet(`
+    <div class="sheet-head"><h3>${m?'✏️ Edit Item':'📦 අලුත් අමුද්‍රව්‍යයක්'}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>Item Name</label><input id="f_name" value="${m?m.name:''}" placeholder="උදා: පිටි (Flour)"></div>
+    <div class="field-row">
+      <div class="field"><label>Item Code</label><input id="f_code" value="${m?m.code:'RM'+(DATA.materials.length+1).toString().padStart(3,'0')}"></div>
+      <div class="field"><label>Category</label><input id="f_category" value="${m?m.category:''}" placeholder="Baking Base"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Unit</label>
+        <select id="f_unit"><option ${m&&m.unit==='kg'?'selected':''}>kg</option><option ${m&&m.unit==='g'?'selected':''}>g</option><option ${m&&m.unit==='L'?'selected':''}>L</option><option ${m&&m.unit==='ml'?'selected':''}>ml</option><option ${m&&m.unit==='Pack'?'selected':''}>Pack</option><option ${m&&m.unit==='Unit'?'selected':''}>Unit</option></select>
+      </div>
+      <div class="field"><label>Supplier</label><select id="f_supplier"><option value="">-</option>${supOptions}</select></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Buying Price (රු./unit)</label><input id="f_price" type="number" value="${m?m.buyingPrice:''}"></div>
+      <div class="field"><label>Current Stock</label><input id="f_stock" type="number" value="${m?m.currentStock:0}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Minimum Stock</label><input id="f_min" type="number" value="${m?m.minStock:''}"></div>
+      <div class="field"><label>Reorder Level</label><input id="f_reorder" type="number" value="${m?m.reorderLevel:''}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label>Std Reorder Qty</label><input id="f_reorderqty" type="number" value="${m?m.reorderQty||'':''}"></div>
+      <div class="field"><label>Expiry Date (අවශ්‍ය නම්)</label><input id="f_expiry" type="date" value="${m?m.expiryDate||'':''}"></div>
+    </div>
+    <button class="btn btn-primary" onclick="saveMaterial(${m?`'${m.id}'`:'null'})">${m?'Update Item':'Item එක Save කරන්න'}</button>
+  `);
+}
+function saveMaterial(id){
+  const name=document.getElementById('f_name').value.trim();
+  if(!name){ toast('Item name එක ඇතුළත් කරන්න'); return; }
+  const obj = {
+    id: id || uid(),
+    code: document.getElementById('f_code').value.trim(),
+    name, category: document.getElementById('f_category').value.trim(),
+    unit: document.getElementById('f_unit').value,
+    supplierId: document.getElementById('f_supplier').value,
+    buyingPrice: parseFloat(document.getElementById('f_price').value)||0,
+    currentStock: parseFloat(document.getElementById('f_stock').value)||0,
+    minStock: parseFloat(document.getElementById('f_min').value)||0,
+    reorderLevel: parseFloat(document.getElementById('f_reorder').value)||0,
+    reorderQty: parseFloat(document.getElementById('f_reorderqty').value)||0,
+    expiryDate: document.getElementById('f_expiry').value||''
+  };
+  if(id){ const idx=DATA.materials.findIndex(m=>m.id===id); DATA.materials[idx]=obj; }
+  else { DATA.materials.push(obj); }
+  saveKey('materials'); closeSheet(); toast('Item එක Save විය'); go('materials');
+}
+
+/* =========================================================
+   PURCHASE ENTRY
+========================================================= */
+let purchasePM = 'cash';
+let editingPurchaseId = null;
+function openPurchaseForm(editId){
+  editingPurchaseId = editId || null;
+  const p = editId ? DATA.purchases.find(x=>x.id===editId) : null;
+  purchasePM = p ? (p.paymentMethod||'cash') : 'cash';
+  const opts = DATA.materials.map(m=>`<option value="${m.id}" ${p&&p.materialId===m.id?'selected':''}>${m.name} (${m.unit})</option>`).join('');
+  const supOpts = DATA.suppliers.map(s=>`<option value="${s.id}" ${p&&p.supplierId===s.id?'selected':''}>${s.name}</option>`).join('');
+  openSheet(`
+    <div class="sheet-head"><h3>🛒 ${p?'Purchase Edit කරන්න':'Purchase Entry'}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>Date</label><input id="p_date" type="date" value="${p?p.date:today()}"></div>
+    <div class="field"><label>Item</label><select id="p_item">${opts}</select></div>
+    <div class="field-row">
+      <div class="field"><label>Quantity</label><input id="p_qty" type="number" placeholder="0" value="${p?p.qty:''}" oninput="updateDueBox()"></div>
+      <div class="field"><label>Buying Price (unit)</label><input id="p_price" type="number" placeholder="0" value="${p?p.price:''}" oninput="updateDueBox()"></div>
+    </div>
+    <div class="field"><label>Supplier</label><select id="p_supplier"><option value="">-</option>${supOpts}</select></div>
+    <div class="field"><label>Invoice No.</label><input id="p_invoice" placeholder="INV-0001" value="${p?p.invoice||'':''}"></div>
+
+    <div class="field">
+      <label>ගෙවීමේ ක්‍රමය (Payment Method)</label>
+      <div class="pm-grid">
+        <div class="pm-opt" id="pm_cash" onclick="setPM('cash')"><span class="ic">💵</span>මුදලට</div>
+        <div class="pm-opt" id="pm_bank" onclick="setPM('bank')"><span class="ic">🏦</span>බැංකුව හරහා</div>
+        <div class="pm-opt" id="pm_credit" onclick="setPM('credit')"><span class="ic">🧾</span>ණයට</div>
+      </div>
+    </div>
+    <div id="creditFields" style="display:none;">
+      <div class="field"><label>${p?'මුළු ගෙවූ මුදල (Total Paid So Far)':'දැනට ගෙවූ මුදල (Amount Paid Now)'}</label><input id="p_paidnow" type="number" placeholder="0" value="${p?(p.amountPaid||0):0}" oninput="updateDueBox()"></div>
+      <div class="due-box"><span class="l">ගෙවිය යුතු ඉතිරි මුදල</span><span class="v num" id="dueAmount">රු. 0</span></div>
+    </div>
+
+    <button class="btn btn-mint" style="margin-top:14px;" onclick="savePurchase()">${p?'Purchase එක Update කරන්න':'Stock එකට එකතු කරන්න'}</button>
+    ${p?`<button class="btn btn-danger" style="margin-top:10px;" onclick="deletePurchase('${p.id}')">🗑️ මෙම Purchase එක ඉවත් කරන්න</button>`:''}
+  `);
+  setPM(purchasePM);
+  const priceInput = document.getElementById('p_price');
+  document.getElementById('p_item').addEventListener('change', function(){ const m=getMaterial(this.value); if(m && !p){ priceInput.value=m.buyingPrice; updateDueBox(); } });
+  if(!p){ const firstMat = getMaterial(document.getElementById('p_item').value); if(firstMat) priceInput.value=firstMat.buyingPrice; }
+  updateDueBox();
+}
+function setPM(pm){
+  purchasePM = pm;
+  ['cash','bank','credit'].forEach(x=> document.getElementById('pm_'+x).classList.remove('active','credit'));
+  document.getElementById('pm_'+pm).classList.add('active', pm==='credit'?'credit':'');
+  document.getElementById('creditFields').style.display = pm==='credit'? 'block':'none';
+  updateDueBox();
+}
+function updateDueBox(){
+  if(purchasePM!=='credit') return;
+  const qty = parseFloat(document.getElementById('p_qty').value)||0;
+  const price = parseFloat(document.getElementById('p_price').value)||0;
+  const paid = parseFloat(document.getElementById('p_paidnow').value)||0;
+  const due = Math.max(0, qty*price - paid);
+  const box = document.getElementById('dueAmount'); if(box) box.textContent = fmtMoney(due);
+}
+function savePurchase(){
+  const materialId = document.getElementById('p_item').value;
+  const qty = parseFloat(document.getElementById('p_qty').value);
+  const price = parseFloat(document.getElementById('p_price').value)||0;
+  const supplierId = document.getElementById('p_supplier').value;
+  if(!materialId || !qty){ toast('Item සහ Quantity ඇතුළත් කරන්න'); return; }
+  if(purchasePM==='credit' && !supplierId){ toast('ණයට නම් Supplier කෙනෙක් තෝරන්න'); return; }
+  const amountPaid = purchasePM==='credit' ? (parseFloat(document.getElementById('p_paidnow').value)||0) : qty*price;
+  const date = document.getElementById('p_date').value||today();
+  const invoice = document.getElementById('p_invoice').value;
+
+  if(editingPurchaseId){
+    // Editing existing purchase: reverse old stock effect, then apply new
+    const old = DATA.purchases.find(x=>x.id===editingPurchaseId);
+    if(old){
+      const oldMaterial = getMaterial(old.materialId);
+      if(oldMaterial){ oldMaterial.currentStock = Math.max(0,(Number(oldMaterial.currentStock)||0) - old.qty); }
+      const newMaterial = getMaterial(materialId);
+      if(newMaterial){ newMaterial.currentStock = (Number(newMaterial.currentStock)||0) + qty; if(price) newMaterial.buyingPrice = price; }
+      saveKey('materials');
+      old.materialId=materialId; old.qty=qty; old.price=price; old.supplierId=supplierId; old.invoice=invoice; old.date=date; old.paymentMethod=purchasePM; old.amountPaid=amountPaid;
+      saveKey('purchases');
+      logMovement('adjustment', materialId, qty, 'Purchase edited');
+      closeSheet(); toast('✅ Purchase එක Update විය'); editingPurchaseId=null; go(currentTab);
+    }
+    return;
+  }
+
+  const m = getMaterial(materialId);
+  m.currentStock = (Number(m.currentStock)||0) + qty;
+  if(price) m.buyingPrice = price;
+  saveKey('materials');
+  DATA.purchases.unshift({id:uid(), date, materialId, qty, price, supplierId, invoice, paymentMethod:purchasePM, amountPaid});
+  saveKey('purchases');
+  logMovement('purchase', materialId, qty, 'Purchase entry ('+paymentMethodLabel(purchasePM)+')');
+  closeSheet();
+  const due = purchasePM==='credit'? Math.max(0, qty*price-amountPaid):0;
+  toast(due>0? ('✅ Stock එකතු විය • ණය රු.'+due.toLocaleString()) : '✅ Stock එකතු කරන ලදී');
+  go(currentTab);
+}
+
+function deletePurchase(id){
+  if(!confirm('මෙම Purchase එක ඉවත් කරන්නද? Stock එකෙන් ප්‍රමාණයත් අඩු කරනු ලැබේ.')) return;
+  const p = DATA.purchases.find(x=>x.id===id); if(!p) return;
+  const m = getMaterial(p.materialId);
+  if(m){ m.currentStock = Math.max(0,(Number(m.currentStock)||0) - p.qty); saveKey('materials'); }
+  DATA.purchases = DATA.purchases.filter(x=>x.id!==id); saveKey('purchases');
+  editingPurchaseId = null;
+  closeSheet(); toast('Purchase එක ඉවත් කරන ලදී'); go(currentTab);
+}
+
+/* =========================================================
+   DAILY USAGE
+========================================================= */
+function openUsageForm(){
+  const opts = DATA.materials.map(m=>`<option value="${m.id}">${m.name} — ${m.currentStock} ${m.unit} ඉතිරිය</option>`).join('');
+  openSheet(`
+    <div class="sheet-head"><h3>🔥 Daily Usage Entry</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>Date</label><input id="u_date" type="date" value="${today()}"></div>
+    <div class="field"><label>Item</label><select id="u_item">${opts}</select></div>
+    <div class="field"><label>භාවිතා කළ ප්‍රමාණය</label><input id="u_qty" type="number" placeholder="0"></div>
+    <button class="btn btn-primary" onclick="saveUsage()">Save & Stock අඩු කරන්න</button>
+  `);
+}
+function saveUsage(){
+  const materialId = document.getElementById('u_item').value;
+  const qty = parseFloat(document.getElementById('u_qty').value);
+  if(!materialId || !qty){ toast('Item සහ Quantity ඇතුළත් කරන්න'); return; }
+  const m = getMaterial(materialId);
+  m.currentStock = Math.max(0, (Number(m.currentStock)||0) - qty);
+  saveKey('materials');
+  DATA.usage.unshift({id:uid(), date:document.getElementById('u_date').value||today(), materialId, qty});
+  saveKey('usage');
+  logMovement('usage', materialId, qty, 'Daily usage');
+  closeSheet(); toast('✅ Usage record කරන ලදී'); go(currentTab);
+}
+
+/* =========================================================
+   WASTAGE
+========================================================= */
+function openWastageForm(){
+  const opts = DATA.materials.map(m=>`<option value="${m.id}">${m.name} (${m.unit})</option>`).join('');
+  openSheet(`
+    <div class="sheet-head"><h3>🗑️ Wastage Entry</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>Date</label><input id="w_date" type="date" value="${today()}"></div>
+    <div class="field"><label>Item</label><select id="w_item">${opts}</select></div>
+    <div class="field"><label>අපතේ ගිය ප්‍රමාණය</label><input id="w_qty" type="number" placeholder="0"></div>
+    <div class="field"><label>හේතුව</label><input id="w_reason" placeholder="උදා: කල් ඉකුත් වීම, පිපිරීම..."></div>
+    <button class="btn btn-danger" onclick="saveWastage()">Wastage Record කරන්න</button>
+  `);
+}
+function saveWastage(){
+  const materialId = document.getElementById('w_item').value;
+  const qty = parseFloat(document.getElementById('w_qty').value);
+  if(!materialId || !qty){ toast('Item සහ Quantity ඇතුළත් කරන්න'); return; }
+  const m = getMaterial(materialId);
+  m.currentStock = Math.max(0, (Number(m.currentStock)||0) - qty);
+  saveKey('materials');
+  DATA.wastage.unshift({id:uid(), date:document.getElementById('w_date').value||today(), materialId, qty, reason:document.getElementById('w_reason').value});
+  saveKey('wastage');
+  logMovement('wastage', materialId, qty, document.getElementById('w_reason').value);
+  closeSheet(); toast('Wastage සටහන් කරන ලදී'); go(currentTab);
+}
+
+/* Quick add FAB sheet */
+function openQuickAdd(){
+  openSheet(`
+    <div class="sheet-head"><h3>⚡ ඉක්මන් එකතු කිරීම</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="action-sheet-grid">
+      <div class="as" onclick="openPurchaseForm()"><div class="ic" style="background:var(--mint-100);color:var(--mint-600)">🛒</div><div class="t">Purchase</div></div>
+      <div class="as" onclick="openUsageForm()"><div class="ic" style="background:#E8EEFF;color:var(--blue-600)">🔥</div><div class="t">Daily Usage</div></div>
+      <div class="as" onclick="openWastageForm()"><div class="ic" style="background:var(--red-100);color:var(--red)">🗑️</div><div class="t">Wastage</div></div>
+      <div class="as" onclick="openMaterialForm()"><div class="ic" style="background:var(--amber-100);color:#B26A00">📦</div><div class="t">New Item</div></div>
+      <div class="as" onclick="openSupplierForm()"><div class="ic" style="background:#F1E8FF;color:#7A3FE0">🚚</div><div class="t">Supplier</div></div>
+      <div class="as" onclick="openRecipeForm()"><div class="ic" style="background:#FFE9F1;color:#E0397A">📖</div><div class="t">Recipe/BOM</div></div>
+    </div>
+  `);
+}
+
+/* =========================================================
+   REPORTS
+========================================================= */
+let reportRange='daily';
+function renderReports(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">📊 Reports</div>
+    <div class="pageSub">Stock, Usage සහ Cost විශ්ලේෂණය</div>
+    <div class="px">
+      <div class="tabs">
+        <div class="tab ${reportRange==='daily'?'active':''}" onclick="reportRange='daily';renderReports()">Daily</div>
+        <div class="tab ${reportRange==='weekly'?'active':''}" onclick="reportRange='weekly';renderReports()">Weekly</div>
+        <div class="tab ${reportRange==='monthly'?'active':''}" onclick="reportRange='monthly';renderReports()">Monthly</div>
+        <div class="tab ${reportRange==='annual'?'active':''}" onclick="reportRange='annual';renderReports()">Annual</div>
+      </div>
+      <div id="reportBody" class="section"></div>
+    </div>
+  `;
+  buildReport();
+}
+function rangeStart(){
+  const d = new Date();
+  if(reportRange==='daily'){ return today(); }
+  if(reportRange==='weekly'){ d.setDate(d.getDate()-7); return d.toISOString().slice(0,10); }
+  if(reportRange==='monthly'){ d.setDate(d.getDate()-30); return d.toISOString().slice(0,10); }
+  d.setFullYear(d.getFullYear()-1); return d.toISOString().slice(0,10);
+}
+function buildReport(){
+  const start = rangeStart();
+  const purchases = DATA.purchases.filter(p=>p.date>=start);
+  const usages = DATA.usage.filter(u=>u.date>=start);
+  const wastages = DATA.wastage.filter(w=>w.date>=start);
+  const purchaseVal = purchases.reduce((s,p)=>s+p.qty*p.price,0);
+  const usageVal = usages.reduce((s,u)=>{ const m=getMaterial(u.materialId); return s+(m?u.qty*m.buyingPrice:0); },0);
+  const wastageVal = wastages.reduce((s,w)=>{ const m=getMaterial(w.materialId); return s+(m?w.qty*m.buyingPrice:0); },0);
+
+  // top used items
+  const usageByItem = {};
+  usages.forEach(u=>{ usageByItem[u.materialId]=(usageByItem[u.materialId]||0)+u.qty; });
+  const topUsed = Object.entries(usageByItem).sort((a,b)=>b[1]-a[1]).slice(0,5)
+    .map(([id,qty])=>{ const m=getMaterial(id); return m? {name:m.name, qty, unit:m.unit}:null; }).filter(Boolean);
+
+  document.getElementById('reportBody').innerHTML = `
+    <div class="stat-grid">
+      <div class="stat-card"><div class="ic mint">🛒</div><div class="val num">${fmtMoney(purchaseVal)}</div><div class="lbl">මිලදී ගැනීම්</div></div>
+      <div class="stat-card"><div class="ic blue">🔥</div><div class="val num">${fmtMoney(usageVal)}</div><div class="lbl">භාවිත වටිනාකම</div></div>
+      <div class="stat-card"><div class="ic red">🗑️</div><div class="val num">${fmtMoney(wastageVal)}</div><div class="lbl">Wastage Loss</div></div>
+      <div class="stat-card"><div class="ic amber">📦</div><div class="val num">${fmtMoney(totalStockValue())}</div><div class="lbl">Closing Stock Value</div></div>
+    </div>
+    <div class="section-head" style="margin-top:16px;"><h3>🏆 වැඩිපුරම භාවිත වූ අමුද්‍රව්‍ය</h3></div>
+    <div class="list-card">
+      ${ topUsed.map((t,i)=>`<div class="row"><div class="av">${i+1}</div><div class="mid"><div class="n">${t.name}</div></div><div class="end"><div class="v num">${t.qty} ${t.unit}</div></div></div>`).join('') || '<div class="empty"><div class="t">දත්ත නැත</div></div>' }
+    </div>
+    <div class="section-head" style="margin-top:16px;"><h3>📈 Usage Trend</h3></div>
+    <div class="chart-wrap"><canvas id="reportChart" height="160"></canvas></div>
+    <div class="section" style="margin-top:16px; margin-bottom:8px;">
+      <div class="btn-row">
+        <button class="btn btn-outline" onclick="exportCSV()">⬇️ CSV Export</button>
+        <button class="btn btn-outline" onclick="exportExcel()">📗 Excel Export</button>
+      </div>
+      <button class="btn btn-primary" style="margin-top:10px;" onclick="window.print()">🖨️ Print / PDF</button>
+    </div>
+  `;
+  drawTrendChart('reportChart', start);
+}
+
+function drawTopUsedChart(canvasId){
+  const usageByItem = {};
+  DATA.usage.forEach(u=>{ usageByItem[u.materialId]=(usageByItem[u.materialId]||0)+u.qty; });
+  const entries = Object.entries(usageByItem).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const labels = entries.map(([id])=> (getMaterial(id)||{name:'?'}).name);
+  const data = entries.map(([,q])=>q);
+  const ctx = document.getElementById(canvasId); if(!ctx) return;
+  if(window._chart1) window._chart1.destroy();
+  window._chart1 = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ data, backgroundColor:'#2F5BFF', borderRadius:8, maxBarThickness:26 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#EEF1F7'}}, x:{grid:{display:false}} } }
+  });
+}
+function drawTrendChart(canvasId, start){
+  const days = [];
+  const now = new Date(); const startD = new Date(start);
+  const diffDays = Math.max(1, Math.min(30, Math.round((now-startD)/86400000)));
+  for(let i=diffDays;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  const values = days.map(d=>{
+    return DATA.usage.filter(u=>u.date===d).reduce((s,u)=>{ const m=getMaterial(u.materialId); return s+(m?u.qty*m.buyingPrice:0);},0);
+  });
+  const ctx = document.getElementById(canvasId); if(!ctx) return;
+  if(window._chart2) window._chart2.destroy();
+  window._chart2 = new Chart(ctx, {
+    type:'line',
+    data:{ labels: days.map(d=>d.slice(5)), datasets:[{ data: values, borderColor:'#00B589', backgroundColor:'rgba(0,217,163,.15)', fill:true, tension:.35, pointRadius:0 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#EEF1F7'}}, x:{grid:{display:false}} } }
+  });
+}
+
+/* =========================================================
+   EXPORT
+========================================================= */
+function exportCSV(){
+  let rows = [['Code','Name','Category','Unit','Current Stock','Min Stock','Reorder Level','Buying Price','Stock Value','Expiry']];
+  DATA.materials.forEach(m=> rows.push([m.code,m.name,m.category,m.unit,m.currentStock,m.minStock,m.reorderLevel,m.buyingPrice,stockValue(m),m.expiryDate||'']));
+  const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='bakery_stock_report.csv'; a.click();
+  toast('CSV Download විය');
+}
+function exportExcel(){
+  const rows = DATA.materials.map(m=>({ Code:m.code, Name:m.name, Category:m.category, Unit:m.unit, CurrentStock:m.currentStock, MinStock:m.minStock, ReorderLevel:m.reorderLevel, BuyingPrice:m.buyingPrice, StockValue:stockValue(m), Expiry:m.expiryDate||'' }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Stock Report');
+  XLSX.writeFile(wb, 'bakery_stock_report.xlsx');
+  toast('Excel Download විය');
+}
+
+/* =========================================================
+   FULL PDF REPORT (via browser print → Save as PDF)
+========================================================= */
+function generateFullReport(){
+  const now = new Date();
+  const stamp = now.toLocaleDateString('si-LK',{day:'2-digit',month:'long',year:'numeric'}) + ' • ' + now.toLocaleTimeString('si-LK',{hour:'2-digit',minute:'2-digit'});
+
+  const materialsRows = DATA.materials.map(m=>`
+    <tr><td>${m.code}</td><td>${m.name}</td><td>${m.category||'-'}</td><td>${m.currentStock} ${m.unit}</td><td>${m.minStock} ${m.unit}</td><td>${fmtMoney(m.buyingPrice)}</td><td>${fmtMoney(stockValue(m))}</td><td>${m.currentStock<=m.minStock?'<span class="prpt-badge" style="background:#FFE8EA;color:#C0192B">Low</span>':'<span class="prpt-badge" style="background:#E4F9EF;color:#0A8F53">OK</span>'}</td></tr>
+  `).join('');
+
+  const purchaseRows = DATA.purchases.map(p=>{
+    const m=getMaterial(p.materialId), sup=getSupplier(p.supplierId), due=purchaseDue(p);
+    return `<tr><td>${fmtDate(p.date)}</td><td>${m?m.name:'?'}</td><td>${p.qty} ${m?m.unit:''}</td><td>${fmtMoney(purchaseTotal(p))}</td><td>${sup?sup.name:'-'}</td><td>${paymentMethodLabel(p.paymentMethod||'cash')}</td><td>${due>0?fmtMoney(due):'—'}</td></tr>`;
+  }).join('');
+
+  const supplierRows = DATA.suppliers.map(s=>{
+    const hist = DATA.purchases.filter(p=>p.supplierId===s.id);
+    const total = hist.reduce((sum,p)=>sum+purchaseTotal(p),0);
+    const due = supplierOutstanding(s.id);
+    return `<tr><td>${s.name}</td><td>${s.phone||'-'}</td><td>${hist.length}</td><td>${fmtMoney(total)}</td><td style="${due>0?'color:#C0192B;font-weight:700;':''}">${fmtMoney(due)}</td></tr>`;
+  }).join('');
+
+  const usageRows = DATA.usage.slice(0,80).map(u=>{ const m=getMaterial(u.materialId); return `<tr><td>${fmtDate(u.date)}</td><td>${m?m.name:'?'}</td><td>${u.qty} ${m?m.unit:''}</td><td>${fmtMoney(m? u.qty*m.buyingPrice:0)}</td></tr>`; }).join('');
+
+  const wastageRows = DATA.wastage.map(w=>{ const m=getMaterial(w.materialId); return `<tr><td>${fmtDate(w.date)}</td><td>${m?m.name:'?'}</td><td>${w.qty} ${m?m.unit:''}</td><td>${fmtMoney(m? w.qty*m.buyingPrice:0)}</td><td>${w.reason||'-'}</td></tr>`; }).join('');
+
+  const expiryRows = DATA.materials.filter(m=>m.expiryDate).sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate)).map(m=>{
+    const d=daysUntil(m.expiryDate);
+    return `<tr><td>${m.name}</td><td>${fmtDate(m.expiryDate)}</td><td>${d} දින</td><td>${d<=7?'<span class="prpt-badge" style="background:#FFE8EA;color:#C0192B">Red Alert</span>':d<=30?'<span class="prpt-badge" style="background:#FFF3E0;color:#B26A00">Alert</span>':'OK'}</td></tr>`;
+  }).join('');
+
+  const monthStr = today().slice(0,7);
+  const monthPurchaseVal = DATA.purchases.filter(p=>p.date.slice(0,7)===monthStr).reduce((s,p)=>s+purchaseTotal(p),0);
+  const monthUsageVal = DATA.usage.filter(u=>u.date.slice(0,7)===monthStr).reduce((s,u)=>{const m=getMaterial(u.materialId); return s+(m?u.qty*m.buyingPrice:0);},0);
+  const monthWastageVal = DATA.wastage.filter(w=>w.date.slice(0,7)===monthStr).reduce((s,w)=>{const m=getMaterial(w.materialId); return s+(m?w.qty*m.buyingPrice:0);},0);
+
+  document.getElementById('printArea').innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #0A1836; padding-bottom:12px;">
+      <div><p class="prpt-h1">🥐 K.V.S BAKE HOUSE HARASBADDA</p><p class="prpt-h2">Inventory & Raw Material Management — සම්පූර්ණ වාර්තාව</p></div>
+      <div style="text-align:right; font-size:11px; color:#666;">සකස් කළ දිනය<br><b>${stamp}</b></div>
+    </div>
+
+    <div class="prpt-summary">
+      <div class="box"><div class="l">මුළු Stock වටිනාකම</div><div class="v">${fmtMoney(totalStockValue())}</div></div>
+      <div class="box"><div class="l">මේ මාසේ මිලදී ගැනීම්</div><div class="v">${fmtMoney(monthPurchaseVal)}</div></div>
+      <div class="box"><div class="l">මේ මාසේ භාවිතය</div><div class="v">${fmtMoney(monthUsageVal)}</div></div>
+      <div class="box"><div class="l">මේ මාසේ Wastage Loss</div><div class="v" style="color:#C0192B;">${fmtMoney(monthWastageVal)}</div></div>
+      <div class="box"><div class="l">Suppliers ට ගෙවිය යුතු ණය</div><div class="v" style="color:#C0192B;">${fmtMoney(totalOutstandingAll())}</div></div>
+      <div class="box"><div class="l">Low Stock Items</div><div class="v">${lowStockItems().length}</div></div>
+    </div>
+
+    <p class="prpt-sec-title">📦 Raw Material Master — සම්පූර්ණ ලැයිස්තුව</p>
+    <table class="prpt-table"><thead><tr><th>Code</th><th>නම</th><th>Category</th><th>Stock</th><th>Min Stock</th><th>මිල/unit</th><th>Stock Value</th><th>තත්ත්වය</th></tr></thead><tbody>${materialsRows||'<tr><td colspan="8">Items නැත</td></tr>'}</tbody></table>
+
+    <p class="prpt-sec-title">🛒 මිලදී ගැනීම් — ගෙවීම් තොරතුරු සමඟ</p>
+    <table class="prpt-table"><thead><tr><th>දිනය</th><th>අයිතමය</th><th>ප්‍රමාණය</th><th>මුළු මුදල</th><th>Supplier</th><th>ගෙවීමේ ක්‍රමය</th><th>ණය ඉතිරිය</th></tr></thead><tbody>${purchaseRows||'<tr><td colspan="7">Purchases නැත</td></tr>'}</tbody></table>
+
+    <p class="prpt-sec-title">🧾 Supplier Payment Control — ණය සාරාංශය</p>
+    <table class="prpt-table"><thead><tr><th>Supplier</th><th>දුරකථනය</th><th>Orders</th><th>මුළු මිලදී ගැනීම්</th><th>ණය ඉතිරිය</th></tr></thead><tbody>${supplierRows||'<tr><td colspan="5">Suppliers නැත</td></tr>'}</tbody></table>
+
+    <p class="prpt-sec-title">🔥 Daily Usage වාර්තාව</p>
+    <table class="prpt-table"><thead><tr><th>දිනය</th><th>අයිතමය</th><th>ප්‍රමාණය</th><th>වටිනාකම</th></tr></thead><tbody>${usageRows||'<tr><td colspan="4">Usage records නැත</td></tr>'}</tbody></table>
+
+    <p class="prpt-sec-title">🗑️ Wastage වාර්තාව</p>
+    <table class="prpt-table"><thead><tr><th>දිනය</th><th>අයිතමය</th><th>ප්‍රමාණය</th><th>අලාභය</th><th>හේතුව</th></tr></thead><tbody>${wastageRows||'<tr><td colspan="5">Wastage records නැත</td></tr>'}</tbody></table>
+
+    <p class="prpt-sec-title">⏰ Expiry Tracking</p>
+    <table class="prpt-table"><thead><tr><th>අයිතමය</th><th>කල් ඉකුත් වන දිනය</th><th>ඉතිරි දින</th><th>තත්ත්වය</th></tr></thead><tbody>${expiryRows||'<tr><td colspan="4">Expiry dates සටහන් කර නැත</td></tr>'}</tbody></table>
+
+    <p style="margin-top:24px; font-size:10px; color:#999; text-align:center;">K.V.S BAKE HOUSE HARASBADDA — Inventory Management System | Generated automatically</p>
+  `;
+  setTimeout(()=> window.print(), 150);
+}
+
+/* =========================================================
+   MORE (Suppliers, Expiry, Recipes, Movements, Search)
+========================================================= */
+function renderMore(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">☰ තවත් Modules</div>
+    <div class="px">
+      <div class="search-wrap"><span class="ic">🔍</span><input id="globalSearch" placeholder="ඕනෑම item එකක් සොයන්න..." oninput="globalSearch(this.value)"></div>
+      <div id="globalSearchResults"></div>
+
+      <div class="section">
+        <div class="list-card">
+          <div class="row" onclick="renderSuppliers()"><div class="av">🚚</div><div class="mid"><div class="n">Supplier Management</div><div class="s">${DATA.suppliers.length} suppliers</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderSupplierPayments()"><div class="av" style="background:var(--red-100);color:var(--red)">🧾</div><div class="mid"><div class="n">Supplier Payment Control</div><div class="s">ණය ඉතිරිය: ${fmtMoney(totalOutstandingAll())}</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="generateFullReport()"><div class="av" style="background:#F1E8FF;color:#7A3FE0">📄</div><div class="mid"><div class="n">සම්පූර්ණ වාර්තාව (PDF)</div><div class="s">සියලු දත්ත සමඟ Full Report</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderExpiry()"><div class="av">⏰</div><div class="mid"><div class="n">Expiry Tracking</div><div class="s">${expiringItems(30).length} items expiring soon</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderWastageLog()"><div class="av">🗑️</div><div class="mid"><div class="n">Wastage Log</div><div class="s">${DATA.wastage.length} records</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderRecipes()"><div class="av">📖</div><div class="mid"><div class="n">Recipe / BOM Management</div><div class="s">${DATA.recipes.length} recipes</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderMovements()"><div class="av">🕓</div><div class="mid"><div class="n">Stock Movement History</div><div class="s">Full activity log</div></div><span class="chev">›</span></div>
+          <div class="row" onclick="renderStockValueList()"><div class="av">💰</div><div class="mid"><div class="n">Current Stock Value</div><div class="s">${fmtMoney(totalStockValue())}</div></div><span class="chev">›</span></div>
+        </div>
+      </div>
+
+      <div class="section" style="margin-bottom:10px;">
+        <div class="section-head"><h3>Export</h3></div>
+        <div class="btn-row">
+          <button class="btn btn-outline" onclick="exportCSV()">⬇️ CSV</button>
+          <button class="btn btn-outline" onclick="exportExcel()">📗 Excel</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function globalSearch(q){
+  const box = document.getElementById('globalSearchResults');
+  if(!q){ box.innerHTML=''; return; }
+  const res = DATA.materials.filter(m=> m.name.toLowerCase().includes(q.toLowerCase()) || m.code.toLowerCase().includes(q.toLowerCase()));
+  box.innerHTML = `<div class="section"><div class="list-card">${ res.map(m=>`<div class="row" onclick="openMaterialDetail('${m.id}')"><div class="av">${m.name.slice(0,2)}</div><div class="mid"><div class="n">${m.name}</div><div class="s">${m.code}</div></div><div class="end"><div class="v num">${m.currentStock} ${m.unit}</div></div></div>`).join('') || '<div class="empty"><div class="t">හමු නොවීය</div></div>' }</div></div>`;
+}
+
+/* -- Suppliers -- */
+function renderSuppliers(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">🚚 Suppliers</div>
+    <div class="px">
+      <div class="list-card">
+        ${ DATA.suppliers.map(s=>{
+          const hist = DATA.purchases.filter(p=>p.supplierId===s.id);
+          const total = hist.reduce((sum,p)=>sum+p.qty*p.price,0);
+          const due = supplierOutstanding(s.id);
+          return `<div class="row" onclick="openSupplierDetail('${s.id}')"><div class="av">${s.name.slice(0,2)}</div><div class="mid"><div class="n">${s.name}</div><div class="s">${s.phone||''}</div></div><div class="end"><div class="v num">${fmtMoney(total)}</div>${due>0?`<span class="badge amber">ණය ${fmtMoney(due)}</span>`:'<span class="badge green">Clear</span>'}</div></div>`;
+        }).join('') || '<div class="empty"><div class="t">Suppliers නැත</div></div>' }
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="openSupplierForm()">+ Supplier එකතු කරන්න</button>
+    </div>
+  `;
+}
+function openSupplierForm(id){
+  const s = id ? getSupplier(id) : null;
+  openSheet(`
+    <div class="sheet-head"><h3>${s?'✏️ Supplier Edit කරන්න':'🚚 New Supplier'}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>Name</label><input id="s_name" value="${s?s.name:''}" placeholder="Supplier නම"></div>
+    <div class="field"><label>Phone</label><input id="s_phone" value="${s?s.phone||'':''}" placeholder="07X XXX XXXX"></div>
+    <div class="field"><label>Address</label><input id="s_address" value="${s?s.address||'':''}" placeholder="ලිපිනය"></div>
+    <button class="btn btn-primary" onclick="saveSupplier(${s?`'${s.id}'`:'null'})">${s?'Update Supplier':'Save Supplier'}</button>
+  `);
+}
+function saveSupplier(id){
+  const name = document.getElementById('s_name').value.trim();
+  if(!name){ toast('නම ඇතුළත් කරන්න'); return; }
+  const phone = document.getElementById('s_phone').value;
+  const address = document.getElementById('s_address').value;
+  if(id){
+    const s = getSupplier(id);
+    s.name=name; s.phone=phone; s.address=address;
+  } else {
+    DATA.suppliers.push({id:uid(), name, phone, address});
+  }
+  saveKey('suppliers'); closeSheet(); toast('Supplier Save විය'); renderSuppliers();
+}
+function openSupplierDetail(id){
+  const s = getSupplier(id); if(!s) return;
+  const hist = DATA.purchases.filter(p=>p.supplierId===id);
+  const due = supplierOutstanding(id);
+  const paidTotal = hist.reduce((sum,p)=> sum + (p.paymentMethod==='credit'? (Number(p.amountPaid)||0) : purchaseTotal(p)), 0);
+  openSheet(`
+    <div class="sheet-head"><h3>${s.name}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="card" style="padding:14px 16px; margin-bottom:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div><div>${s.phone||'-'}</div><div style="color:var(--muted);font-size:12px;">${s.address||''}</div></div>
+        <button class="btn btn-sm btn-outline" onclick="openSupplierForm('${s.id}')">✏️ Edit</button>
+      </div>
+    </div>
+    <div class="stat-grid" style="margin-bottom:6px;">
+      <div class="stat-card"><div class="ic mint">✅</div><div class="val num">${fmtMoney(paidTotal)}</div><div class="lbl">ගෙවා ඇති මුදල</div></div>
+      <div class="stat-card"><div class="ic red">🧾</div><div class="val num">${fmtMoney(due)}</div><div class="lbl">ගෙවිය යුතු ණය</div></div>
+    </div>
+    <div class="section-head"><h3>Purchase History</h3></div>
+    <div class="list-card">
+      ${ hist.map(p=>{
+        const m=getMaterial(p.materialId); const total=purchaseTotal(p); const pdue = purchaseDue(p);
+        const badge = p.paymentMethod==='credit' ? (pdue>0? `<span class="badge amber">ණය ${fmtMoney(pdue)}</span>`:'<span class="badge green">ගෙවා ඉවරයි</span>') : `<span class="badge gray">${paymentMethodLabel(p.paymentMethod||'cash')}</span>`;
+        return `<div class="alert-row"><div class="swatch" style="background:var(--mint-100);color:var(--mint-600)">🛒</div><div class="info"><div class="n">${m?m.name:'?'}</div><div class="s">${fmtDate(p.date)} • ${p.qty} ${m?m.unit:''}</div>${badge}</div><div class="right"><div class="v num">${fmtMoney(total)}</div><div style="margin-top:5px; display:flex; gap:6px; justify-content:flex-end;">${pdue>0?`<button class="btn btn-sm btn-primary" onclick="openRecordPayment('${p.id}')">ගෙවන්න</button>`:''}<button class="btn btn-sm btn-outline" onclick="openPurchaseForm('${p.id}')">✏️</button></div></div></div>`;
+      }).join('') || '<div class="empty"><div class="t">Purchase history නැත</div></div>' }
+    </div>
+  `);
+}
+function openRecordPayment(purchaseId){
+  const p = DATA.purchases.find(x=>x.id===purchaseId); if(!p) return;
+  const due = purchaseDue(p);
+  openSheet(`
+    <div class="sheet-head"><h3>🧾 ගෙවීම සටහන් කරන්න</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="due-box" style="margin-bottom:14px;"><span class="l">දැනට ණය ඉතිරිය</span><span class="v num">${fmtMoney(due)}</span></div>
+    <div class="field"><label>ගෙවන මුදල</label><input id="pay_amount" type="number" value="${due}" placeholder="0"></div>
+    <div class="field"><label>දිනය</label><input id="pay_date" type="date" value="${today()}"></div>
+    <button class="btn btn-mint" onclick="saveSupplierPayment('${purchaseId}')">ගෙවීම Save කරන්න</button>
+  `);
+}
+function saveSupplierPayment(purchaseId){
+  const p = DATA.purchases.find(x=>x.id===purchaseId); if(!p) return;
+  const amt = parseFloat(document.getElementById('pay_amount').value)||0;
+  if(amt<=0){ toast('මුදල ඇතුළත් කරන්න'); return; }
+  p.amountPaid = (Number(p.amountPaid)||0) + amt;
+  saveKey('purchases');
+  DATA.payments.unshift({id:uid(), date:document.getElementById('pay_date').value||today(), supplierId:p.supplierId, purchaseId, amount:amt});
+  saveKey('payments');
+  closeSheet(); toast('✅ ගෙවීම සටහන් විය'); renderSupplierPayments();
+}
+
+/* -- Supplier Payment Control -- */
+function renderSupplierPayments(){
+  const creditPurchases = DATA.purchases.filter(p=>p.paymentMethod==='credit');
+  const totalDue = totalOutstandingAll();
+  const totalCredit = creditPurchases.reduce((s,p)=>s+purchaseTotal(p),0);
+  const totalPaidOfCredit = creditPurchases.reduce((s,p)=>s+(Number(p.amountPaid)||0),0);
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">🧾 Supplier Payment Control</div>
+    <div class="pageSub">Cash / Bank / ණයට ගෙවීම් සහ ණය ඉතිරිය පාලනය</div>
+    <div class="px">
+      <div class="stat-grid" style="margin-top:6px;">
+        <div class="stat-card"><div class="ic amber">🧾</div><div class="val num">${fmtMoney(totalCredit)}</div><div class="lbl">මුළු ණයට මිලදී ගැනීම්</div></div>
+        <div class="stat-card"><div class="ic mint">✅</div><div class="val num">${fmtMoney(totalPaidOfCredit)}</div><div class="lbl">ණයෙන් ගෙවා ඇති මුදල</div></div>
+        <div class="stat-card"><div class="ic red">⚠️</div><div class="val num">${fmtMoney(totalDue)}</div><div class="lbl">සම්පූර්ණ ණය ඉතිරිය</div></div>
+        <div class="stat-card"><div class="ic blue">🏪</div><div class="val num">${DATA.suppliers.filter(s=>supplierOutstanding(s.id)>0).length}</div><div class="lbl">ණය ඇති Suppliers</div></div>
+      </div>
+
+      <div class="section-head" style="margin-top:16px;"><h3>🏪 Supplier අනුව ණය ඉතිරිය</h3></div>
+      <div class="list-card">
+        ${ DATA.suppliers.map(s=>{ const d=supplierOutstanding(s.id); if(d<=0) return ''; return `<div class="row" onclick="openSupplierDetail('${s.id}')"><div class="av">${s.name.slice(0,2)}</div><div class="mid"><div class="n">${s.name}</div><div class="s">${s.phone||''}</div></div><div class="end"><div class="v num" style="color:var(--red)">${fmtMoney(d)}</div></div></div>`; }).filter(Boolean).join('') || '<div class="empty"><div class="ic">✅</div><div class="t">ණය ඉතිරි කිසිවක් නැත</div></div>' }
+      </div>
+
+      <div class="section-head" style="margin-top:16px;"><h3>🧾 ණයට කරන ලද මිලදී ගැනීම්</h3></div>
+      <div class="list-card">
+        ${ creditPurchases.map(p=>{
+          const m=getMaterial(p.materialId); const sup=getSupplier(p.supplierId); const due=purchaseDue(p);
+          return `<div class="alert-row"><div class="swatch" style="background:${due>0?'var(--amber-100)':'var(--green-100)'};color:${due>0?'#B26A00':'var(--green)'}">${due>0?'🧾':'✅'}</div>
+          <div class="info"><div class="n">${m?m.name:'?'} • ${sup?sup.name:'-'}</div><div class="s">${fmtDate(p.date)} • Total ${fmtMoney(purchaseTotal(p))}</div></div>
+          <div class="right"><div class="v num">${due>0?fmtMoney(due):'ගෙවා ඉවරයි'}</div><div style="margin-top:5px; display:flex; gap:6px; justify-content:flex-end;">${due>0?`<button class="btn btn-sm btn-primary" onclick="openRecordPayment('${p.id}')">ගෙවන්න</button>`:''}<button class="btn btn-sm btn-outline" onclick="openPurchaseForm('${p.id}')">✏️</button></div></div></div>`;
+        }).join('') || '<div class="empty"><div class="ic">📭</div><div class="t">ණයට මිලදී ගැනීම් නැත</div></div>' }
+      </div>
+    </div>
+  `;
+}
+
+/* -- Expiry -- */
+function renderExpiry(){
+  const items = DATA.materials.filter(m=>m.expiryDate).sort((a,b)=> new Date(a.expiryDate)-new Date(b.expiryDate));
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">⏰ Expiry Tracking</div>
+    <div class="pageSub">දින 30කට කලින් Alert • දින 7කට කලින් Red Alert</div>
+    <div class="px section">
+      <div class="list-card">
+        ${ items.map(m=>{
+          const d = daysUntil(m.expiryDate);
+          const badge = d<=7? '<span class="badge red">Red Alert</span>' : d<=30? '<span class="badge amber">Alert</span>' : '<span class="badge gray">OK</span>';
+          return `<div class="row" onclick="openMaterialDetail('${m.id}')"><div class="av">${m.name.slice(0,2)}</div><div class="mid"><div class="n">${m.name}</div><div class="s">${fmtDate(m.expiryDate)} • ${d} දින</div></div><div class="end">${badge}</div></div>`;
+        }).join('') || '<div class="empty"><div class="ic">📭</div><div class="t">Expiry dates සටහන් කර නැත</div></div>' }
+      </div>
+    </div>
+  `;
+}
+
+/* -- Wastage log -- */
+function renderWastageLog(){
+  const monthStr = today().slice(0,7);
+  const monthLoss = DATA.wastage.filter(w=>w.date.slice(0,7)===monthStr).reduce((s,w)=>{const m=getMaterial(w.materialId); return s+(m?w.qty*m.buyingPrice:0);},0);
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">🗑️ Wastage Management</div>
+    <div class="px">
+      <div class="stat-card" style="margin-top:6px;"><div class="ic red">📉</div><div class="val num">${fmtMoney(monthLoss)}</div><div class="lbl">මේ මාසේ Wastage Loss</div></div>
+      <div class="section">
+        <div class="list-card">
+          ${ DATA.wastage.map(w=>{ const m=getMaterial(w.materialId); return `<div class="alert-row"><div class="swatch" style="background:var(--red-100);color:var(--red)">🗑️</div><div class="info"><div class="n">${m?m.name:'?'}</div><div class="s">${fmtDate(w.date)} • ${w.reason||'-'}</div></div><div class="right"><div class="v num">-${w.qty} ${m?m.unit:''}</div></div></div>`; }).join('') || '<div class="empty"><div class="t">Wastage records නැත</div></div>' }
+        </div>
+      </div>
+      <button class="btn btn-danger" style="margin-top:14px;" onclick="openWastageForm()">+ Wastage Record කරන්න</button>
+    </div>
+  `;
+}
+
+/* -- Recipes / BOM -- */
+function renderRecipes(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">📖 Recipe / BOM</div>
+    <div class="pageSub">නිෂ්පාදනයක් සදහා අවශ්‍ය අමුද්‍රව්‍ය ප්‍රමාණය</div>
+    <div class="px section">
+      <div class="list-card">
+        ${ DATA.recipes.map(r=>`<div class="row" onclick="produceRecipe('${r.id}')"><div class="av">📖</div><div class="mid"><div class="n">${r.productName}</div><div class="s">${r.ingredients.length} ingredients</div></div><span class="chev">▶</span></div>`).join('') || '<div class="empty"><div class="ic">📖</div><div class="t">Recipes නැත</div></div>' }
+      </div>
+      <button class="btn btn-primary" style="margin-top:14px;" onclick="openRecipeForm()">+ Recipe එකතු කරන්න</button>
+    </div>
+  `;
+}
+let recipeIngredients=[];
+function openRecipeForm(){
+  recipeIngredients=[];
+  const opts = DATA.materials.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  openSheet(`
+    <div class="sheet-head"><h3>📖 New Recipe (BOM)</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="field"><label>නිෂ්පාදන නම</label><input id="r_name" placeholder="උදා: සම්මාන්‍ය පාන් ලොෆ්"></div>
+    <div class="field-row">
+      <div class="field"><label>අමුද්‍රව්‍යය</label><select id="r_item">${opts}</select></div>
+      <div class="field"><label>ප්‍රමාණය</label><input id="r_qty" type="number" placeholder="0"></div>
+    </div>
+    <button class="btn btn-outline" onclick="addRecipeIngredient()">+ Ingredient එකතු කරන්න</button>
+    <div id="r_ingredientList" class="section"></div>
+    <button class="btn btn-primary" style="margin-top:14px;" onclick="saveRecipe()">Recipe Save කරන්න</button>
+  `);
+}
+function addRecipeIngredient(){
+  const materialId = document.getElementById('r_item').value;
+  const qty = parseFloat(document.getElementById('r_qty').value);
+  if(!materialId||!qty){ toast('Item සහ Quantity ඇතුළත් කරන්න'); return; }
+  recipeIngredients.push({materialId, qty});
+  document.getElementById('r_qty').value='';
+  renderRecipeIngredientList();
+}
+function renderRecipeIngredientList(){
+  document.getElementById('r_ingredientList').innerHTML = `<div class="list-card">${ recipeIngredients.map((ing,i)=>{ const m=getMaterial(ing.materialId); return `<div class="alert-row"><div class="swatch" style="background:var(--mint-100);color:var(--mint-600)">🧂</div><div class="info"><div class="n">${m.name}</div></div><div class="right"><div class="v num">${ing.qty} ${m.unit}</div></div></div>`; }).join('') }</div>`;
+}
+function saveRecipe(){
+  const productName = document.getElementById('r_name').value.trim();
+  if(!productName || recipeIngredients.length===0){ toast('නම සහ Ingredients ඇතුළත් කරන්න'); return; }
+  DATA.recipes.push({id:uid(), productName, ingredients:recipeIngredients});
+  saveKey('recipes'); closeSheet(); toast('Recipe Save විය'); renderRecipes();
+}
+function produceRecipe(id){
+  const r = DATA.recipes.find(x=>x.id===id); if(!r) return;
+  openSheet(`
+    <div class="sheet-head"><h3>${r.productName}</h3><div class="x" onclick="closeSheet()">✕</div></div>
+    <div class="list-card" style="margin-bottom:14px;">
+      ${ r.ingredients.map(ing=>{ const m=getMaterial(ing.materialId); return `<div class="alert-row"><div class="swatch" style="background:#E8EEFF;color:var(--blue-600)">🧂</div><div class="info"><div class="n">${m?m.name:'?'}</div><div class="s">Stock: ${m?m.currentStock:'-'} ${m?m.unit:''}</div></div><div class="right"><div class="v num">${ing.qty} ${m?m.unit:''}</div></div></div>`; }).join('') }
+    </div>
+    <div class="field"><label>නිපදවීමට Batch ගණන</label><input id="prod_batches" type="number" value="1" min="1"></div>
+    <button class="btn btn-mint" onclick="confirmProduce('${r.id}')">✅ නිෂ්පාදනය කර Stock අඩු කරන්න</button>
+  `);
+}
+function confirmProduce(id){
+  const r = DATA.recipes.find(x=>x.id===id); if(!r) return;
+  const batches = parseFloat(document.getElementById('prod_batches').value)||1;
+  r.ingredients.forEach(ing=>{
+    const m = getMaterial(ing.materialId);
+    if(m){ m.currentStock = Math.max(0, m.currentStock - ing.qty*batches); logMovement('usage', m.id, ing.qty*batches, 'Recipe: '+r.productName); }
+  });
+  saveKey('materials');
+  closeSheet(); toast('✅ නිෂ්පාදනය කර Stock update විය'); go(currentTab);
+}
+
+/* -- Movements -- */
+function renderMovements(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">🕓 Stock Movement History</div>
+    <div class="px section">
+      <div class="list-card">
+        ${ DATA.movements.slice(0,60).map(x=>{ const m=getMaterial(x.materialId); const ic = x.type==='usage'?'🔥':x.type==='purchase'?'🛒':'🗑️'; const color = x.type==='usage'?'var(--blue-600)':x.type==='purchase'?'var(--mint-600)':'var(--red)'; const bg = x.type==='usage'?'#E8EEFF':x.type==='purchase'?'var(--mint-100)':'var(--red-100)';
+          return `<div class="alert-row"><div class="swatch" style="background:${bg};color:${color}">${ic}</div><div class="info"><div class="n">${m?m.name:'?'}</div><div class="s">${fmtDate(x.date)} • ${x.note||x.type}</div></div><div class="right"><div class="v num">${x.type==='purchase'?'+':'-'}${x.qty}</div></div></div>`;
+        }).join('') || '<div class="empty"><div class="t">Movements නැත</div></div>' }
+      </div>
+    </div>
+  `;
+}
+
+/* -- Stock value list -- */
+function renderStockValueList(){
+  document.getElementById('appContent').innerHTML = `
+    <div class="pageTitle">💰 Current Stock Value</div>
+    <div class="px">
+      <div class="hero" style="margin:6px 0 16px;">
+        <div class="label"><span>මුළු Stock Value</span></div>
+        <div class="amount num">${fmtMoney(totalStockValue())}</div>
+      </div>
+      <div class="list-card">
+        ${ DATA.materials.slice().sort((a,b)=>stockValue(b)-stockValue(a)).map(m=>`<div class="row"><div class="av">${m.name.slice(0,2)}</div><div class="mid"><div class="n">${m.name}</div><div class="s">${m.currentStock} ${m.unit} × ${fmtMoney(m.buyingPrice)}</div></div><div class="end"><div class="v num">${fmtMoney(stockValue(m))}</div></div></div>`).join('') }
+      </div>
+    </div>
+  `;
+}
+
+/* =========================================================
+   INIT
+========================================================= */
+go('dashboard');
+</script>
+</body>
+</html>
